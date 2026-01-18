@@ -75,10 +75,10 @@ loadalerts.o: loadalerts.c
 matching.o: matching.c
 	$(CC) $(CFLAGS) $(PCREINCDIR) -c -o $@ $<
 
-sha1.o: sha1.c
+sha1.o: sha1.c test-endianness
 	$(CC) $(CFLAGS) `./test-endianness` -c -o $@ $<
 
-rmd160c.o: rmd160c.c
+rmd160c.o: rmd160c.c test-endianness
 	$(CC) $(CFLAGS) `./test-endianness` -c -o $@ $<
 
 environ.o: environ.c
@@ -96,22 +96,22 @@ timefunc-client.o: timefunc.c
 loadhosts: loadhosts.c loadhosts_file.c loadhosts_net.c $(XYMONCOMMLIB)
 	$(CC) $(CFLAGS) -DSTANDALONE -o $@ loadhosts.c $(XYMONCOMMLIBS)
 
-stackio: stackio.c libxymon.a
+stackio: stackio.c $(XYMONLIBS)
 	$(CC) $(CFLAGS) -DSTANDALONE -o $@ stackio.c $(XYMONLIBS)
 
-availability: availability.c libxymon.a
+availability: availability.c $(XYMONLIBS)
 	$(CC) $(CFLAGS) -DSTANDALONE -o $@ availability.c $(XYMONLIBS)
 
-md5: md5.c
+md5: md5.c test-endianness
 	$(CC) $(CFLAGS) -DSTANDALONE `./test-endianness` -o $@ md5.c
 
-sha1: sha1.c
+sha1: sha1.c test-endianness
 	$(CC) $(CFLAGS) -DSTANDALONE `./test-endianness` -o $@ sha1.c
 
-rmd160: rmd160c.c
+rmd160: rmd160c.c test-endianness
 	$(CC) $(CFLAGS) -DSTANDALONE `./test-endianness` -o $@ rmd160c.c
 
-locator: locator.c
+locator: locator.c $(XYMONCOMMLIBS) $(XYMONLIBS)
 	$(CC) $(CFLAGS) -DSTANDALONE -o $@ locator.c $(XYMONCOMMLIBS) $(XYMONLIBS)
 
 tree: tree.c
