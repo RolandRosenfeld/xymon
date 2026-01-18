@@ -19,9 +19,11 @@ ifeq ($(LOCALCLIENT),yes)
 	CLIENTTARGETS = lib-client common-client build-build xymond-client
 	INSTALLTARGETS = install-client install-localclient install-clientmsg
 	CFLAGS += -DLOCALCLIENT=1 $(PCREINCDIR)
+	BUILDBUILDDEP = lib-build
 else
 	CLIENTTARGETS = lib-client common-client build-build
 	INSTALLTARGETS = install-client install-clientmsg
+	BUILDBUILDDEP = lib-client
 endif
 else
 	BUILDTARGETS = lib-build common-build xymongen-build xymonnet-build xymonproxy-build docs-build build-build xymond-build web-build client
@@ -30,6 +32,7 @@ else
 	CFLAGS += $(PCREINCDIR)
 	XYMONCLIENTHOME = $(XYMONTOPDIR)/client
 	XYMONHOME = $(XYMONTOPDIR)/server
+	BUILDBUILDDEP = lib-build
 endif
 
 ifndef INSTALLBINDIR
@@ -80,7 +83,7 @@ client: include/config.h $(CLIENTTARGETS)
 include/config.h:
 	MAKE="$(MAKE)" CC="$(CC)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" $(BUILDTOPDIR)/build/genconfig.sh
 
-build-build: include/config.h lib-build
+build-build: include/config.h $(BUILDBUILDDEP)
 	CC="$(CC)" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" RPATHOPT="$(RPATHOPT)" SSLLIBS="$(SSLLIBS)" NETLIBS="$(NETLIBS)" LIBRTDEF="$(LIBRTDEF)" XYMONHOME="$(XYMONHOME)" $(MAKE) -C build all
 
 lib-build: include/config.h
