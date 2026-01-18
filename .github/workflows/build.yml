@@ -15,11 +15,11 @@ jobs:
           - name: server
             variant: server
 
-          - name: client (CONFTYPE=client)
+          - name: client, CT=client
             variant: client
             conftype: client
 
-          - name: client (CONFTYPE=server)
+          - name: client CT=server
             variant: client
             conftype: server
 
