@@ -32,7 +32,8 @@ all: test-endianness $(XYMONLIB) $(XYMONCOMMLIB) $(XYMONTIMELIB) $(XYMONCLIENTCO
 client: test-endianness $(XYMONCLIENTLIB) $(XYMONCLIENTCOMMLIB) $(XYMONTIMELIB)
 
 test-endianness: test-endianness.c
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -o $@.new $<
+	mv -f $@.new $@
 
 $(XYMONLIB): $(XYMONLIBOBJS)
 	ar cr $(XYMONLIB) $(XYMONLIBOBJS)
