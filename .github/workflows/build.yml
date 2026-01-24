@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    name: build (${{ matrix.name }})
+    name: build (ubuntu-latest / ${{ matrix.name }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -19,7 +19,7 @@ jobs:
             variant: client
             conftype: client
 
-          - name: client CT=server
+          - name: client, CT=server
             variant: client
             conftype: server
 
@@ -38,6 +38,127 @@ jobs:
             librrd-dev \
             libssl-dev \
             libtirpc-dev
+
+          if [ "${{ matrix.variant }}" = "client" ] && [ "${{ matrix.conftype }}" = "server" ]; then
+            echo "Skipping PCRE dependencies for client CT=server"
+          else
+            sudo apt-get install -y --no-install-recommends libpcre2-dev
+          fi
+
+      - name: Configure (${{ matrix.name }})
+        env:
+          CONFTYPE: ${{ matrix.conftype }}
+        run: |
+          USEXYMONPING=y \
+          ENABLESSL=y \
+          ENABLELDAP=y \
+          ENABLELDAPSSL=y \
+          XYMONUSER=xymon \
+          XYMONTOPDIR=/usr/lib/xymon \
+          XYMONVAR=/var/lib/xymon \
+          XYMONHOSTURL=/xymon \
+          CGIDIR=/usr/lib/xymon/cgi-bin \
+          XYMONCGIURL=/xymon-cgi \
+          SECURECGIDIR=/usr/lib/xymon/cgi-secure \
+          SECUREXYMONCGIURL=/xymon-seccgi \
+          HTTPDGID=www-data \
+          XYMONLOGDIR=/var/log/xymon \
+          XYMONHOSTNAME=localhost \
+          XYMONHOSTIP=127.0.0.1 \
+          MANROOT=/usr/share/man \
+          INSTALLBINDIR=/usr/lib/xymon/server/bin \
+          INSTALLETCDIR=/etc/xymon \
+          INSTALLWEBDIR=/etc/xymon/web \
+          INSTALLEXTDIR=/usr/lib/xymon/server/ext \
+          INSTALLTMPDIR=/var/lib/xymon/tmp \
+          INSTALLWWWDIR=/var/lib/xymon/www \
+          ./configure --${{ matrix.variant }}
+
+      - name: Build
+        run: |
+          # FIXME: building in parallel causes issues
+          # see https://github.com/xymon-monitoring/xymon/issues/3
+          make -j1
+
+  build-debian:
+    name: build (debian:${{ matrix.debian }} / ${{ matrix.name }})
+    runs-on: ubuntu-latest
+    container:
+      image: debian:${{ matrix.debian }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - debian: "11"
+            name: server
+            variant: server
+          - debian: "11"
+            name: client, CT=client
+            variant: client
+            conftype: client
+          - debian: "11"
+            name: client, CT=server
+            variant: client
+            conftype: server
+
+          - debian: "12"
+            name: server
+            variant: server
+          - debian: "12"
+            name: client, CT=client
+            variant: client
+            conftype: client
+          - debian: "12"
+            name: client, CT=server
+            variant: client
+            conftype: server
+
+          - debian: "13"
+            name: server
+            variant: server
+          - debian: "13"
+            name: client, CT=client
+            variant: client
+            conftype: client
+          - debian: "13"
+            name: client, CT=server
+            variant: client
+            conftype: server
+
+          - debian: "sid"
+            name: server
+            variant: server
+          - debian: "sid"
+            name: client, CT=client
+            variant: client
+            conftype: client
+          - debian: "sid"
+            name: client, CT=server
+            variant: client
+            conftype: server
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates \
+            git \
+            build-essential \
+            libc-ares-dev \
+            libldap2-dev \
+            librrd-dev \
+            libssl-dev \
+            libtirpc-dev
+
+          if [ "${{ matrix.variant }}" = "client" ] && [ "${{ matrix.conftype }}" = "server" ]; then
+            echo "Skipping PCRE dependencies for client CT=server"
+          else
+            apt-get install -y --no-install-recommends libpcre2-dev pkgconf
+          fi
 
       - name: Configure (${{ matrix.name }})
         env:
