@@ -20,6 +20,8 @@ xymonproxy: $(PROXYOBJS) $(XYMONCOMMLIB) $(XYMONTIMELIB) $(XYMONLIB)
 xymoncgimsg.cgi: $(MSGCGIOBJS) $(XYMONCOMMLIB) $(XYMONLIB)
 	$(CC) $(CFLAGS) -o $@ $(MSGCGIOBJS) $(XYMONCOMMLIBS) $(XYMONLIBS) 
 
+CFLAGS += $(PCREINCDIR) $(PCREDEF)
+
 ################################################
 # Default compilation rules
 ################################################

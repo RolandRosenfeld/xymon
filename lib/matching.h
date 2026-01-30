@@ -13,12 +13,21 @@
 
 /* The clients probably don't have the pcre headers */
 #if defined(LOCALCLIENT) || !defined(CLIENTONLY)
+#ifdef PCRE2
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h>
+#else
+#include <pcre.h>
+#endif
 #include <stdarg.h>
 
+#ifdef PCRE2
 extern pcre2_code *compileregex(const char *pattern);
 extern pcre2_code *compileregex_opts(const char *pattern, uint32_t flags);
+#else
+extern pcre *compileregex(const char *pattern);
+extern pcre *compileregex_opts(const char *pattern, int flags);
+#endif
 #ifdef PCRE_FIRSTLINE
 #define firstlineregex(P) compileregex_opts(P, PCRE_FIRSTLINE);
 #define firstlineregexnocase(P) compileregex_opts(P, PCRE_CASELESS|PCRE_FIRSTLINE);
@@ -26,6 +35,7 @@ extern pcre2_code *compileregex_opts(const char *pattern, uint32_t flags);
 #define firstlineregex(P) compileregex_opts(P, 0);
 #define firstlineregexnocase(P) compileregex_opts(P, PCRE_CASELESS);
 #endif
+#ifdef PCRE2
 extern pcre2_code *multilineregex(const char *pattern);
 extern int matchregex(const char *needle, pcre2_code *pcrecode);
 extern void freeregex(pcre2_code *pcrecode);
@@ -33,6 +43,15 @@ extern int namematch(const char *needle, char *haystack, pcre2_code *pcrecode);
 extern int patternmatch(char *datatosearch, char *pattern, pcre2_code *pcrecode);
 extern pcre2_code **compile_exprs(char *id, const char **patterns, int count);
 extern int pickdata(char *buf, pcre2_code *expr, int dupok, ...);
+#else
+extern pcre *multilineregex(const char *pattern);
+extern int matchregex(const char *needle, pcre *pcrecode);
+extern void freeregex(pcre *pcrecode);
+extern int namematch(const char *needle, char *haystack, pcre *pcrecode);
+extern int patternmatch(char *datatosearch, char *pattern, pcre *pcrecode);
+extern pcre **compile_exprs(char *id, const char **patterns, int count);
+extern int pickdata(char *buf, pcre *expr, int dupok, ...);
+#endif
 extern int timematch(char *holidaykey, char *tspec);
 #endif
 

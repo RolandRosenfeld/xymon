@@ -120,6 +120,7 @@ static const char *ifstat_bbwin_exprs[] = {
 int do_ifstat_rrd(char *hostname, char *testname, char *classname, char *pagepaths, char *msg, time_t tstamp)
 {
 	static int pcres_compiled = 0;
+#ifdef PCRE2
 	static pcre2_code **ifstat_linux_pcres = NULL;
 	static pcre2_code **ifstat_freebsd_pcres = NULL;
 	static pcre2_code **ifstat_freebsdV8_pcres = NULL;
@@ -131,6 +132,19 @@ int do_ifstat_rrd(char *hostname, char *testname, char *classname, char *pagepat
 	static pcre2_code **ifstat_hpux_pcres = NULL;
 	static pcre2_code **ifstat_sco_sv_pcres = NULL;
 	static pcre2_code **ifstat_bbwin_pcres = NULL;
+#else
+	static pcre **ifstat_linux_pcres = NULL;
+	static pcre **ifstat_freebsd_pcres = NULL;
+	static pcre **ifstat_freebsdV8_pcres = NULL;
+	static pcre **ifstat_openbsd_pcres = NULL;
+	static pcre **ifstat_netbsd_pcres = NULL;
+	static pcre **ifstat_darwin_pcres = NULL;
+	static pcre **ifstat_solaris_pcres = NULL;
+	static pcre **ifstat_aix_pcres = NULL;
+	static pcre **ifstat_hpux_pcres = NULL;
+	static pcre **ifstat_sco_sv_pcres = NULL;
+	static pcre **ifstat_bbwin_pcres = NULL;
+#endif
 
 	enum ostype_t ostype;
 	char *datapart = msg;
@@ -138,7 +152,11 @@ int do_ifstat_rrd(char *hostname, char *testname, char *classname, char *pagepat
 	int dmatch;
 
 	void *xmh;
+#ifdef PCRE2
 	pcre2_code *ifname_filter_pcre = NULL;
+#else
+	pcre *ifname_filter_pcre = NULL;
+#endif
 
 	xmh = hostinfo(hostname);
 	if (xmh) {

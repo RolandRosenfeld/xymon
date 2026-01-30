@@ -27,8 +27,12 @@ static char rcsid[] = "$Id$";
 #include <sys/un.h>
 #include <fcntl.h>
 
+#ifdef PCRE2
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h>
+#else
+#include <pcre.h>
+#endif
 #include <rrd.h>
 
 #include "libxymon.h"
@@ -951,11 +955,18 @@ void generate_graph(char *gdeffn, char *rrddir, char *graphfn)
 	}
 	else {
 		struct dirent *d;
+#ifdef PCRE2
 		pcre2_code *pat, *expat = NULL;
 		char errmsg[120];
 		int err, result;
 		PCRE2_SIZE errofs;
 		pcre2_match_data *ovector;
+#else
+		pcre *pat, *expat = NULL;
+		const char *errmsg;
+		int errofs, result;
+		int ovector[30];
+#endif
 		struct stat st;
 		time_t now = getcurrenttime(NULL);
 
@@ -963,23 +974,42 @@ void generate_graph(char *gdeffn, char *rrddir, char *graphfn)
 		dir = opendir("."); if (dir == NULL) errormsg("Unexpected error while accessing RRD directory");
 
 		/* Setup the pattern to match filenames against */
+#ifdef PCRE2
 		pat = pcre2_compile(gdef->fnpat, strlen(gdef->fnpat), PCRE2_CASELESS, &err, &errofs, NULL);
+#else
+		pat = pcre_compile(gdef->fnpat, PCRE_CASELESS, &errmsg, &errofs, NULL);
+#endif
 		if (!pat) {
 			char msg[8192];
 
+#ifdef PCRE2
 			pcre2_get_error_message(err, errmsg, sizeof(errmsg));
 			snprintf(msg, sizeof(msg), "graphs.cfg error, PCRE pattern %s invalid: %s, offset %zu\n",
+#else
+			snprintf(msg, sizeof(msg), "graphs.cfg error, PCRE pattern %s invalid: %s, offset %d\n",
+#endif
 				 htmlquoted(gdef->fnpat), errmsg, errofs);
 			errormsg(msg);
 		}
 		if (gdef->exfnpat) {
+#ifdef PCRE2
 			expat = pcre2_compile(gdef->exfnpat, strlen(gdef->exfnpat), PCRE2_CASELESS, &err, &errofs, NULL);
+#else
+			expat = pcre_compile(gdef->exfnpat, PCRE_CASELESS, &errmsg, &errofs, NULL);
+#endif
 			if (!expat) {
 				char msg[8192];
 
+#ifdef PCRE2
 				pcre2_get_error_message(err, errmsg, sizeof(errmsg));
+#endif
+
 				snprintf(msg, sizeof(msg), 
+#ifdef PCRE2
 					 "graphs.cfg error, PCRE pattern %s invalid: %s, offset %zu\n",
+#else
+					 "graphs.cfg error, PCRE pattern %s invalid: %s, offset %d\n",
+#endif
 					 htmlquoted(gdef->exfnpat), errmsg, errofs);
 				errormsg(msg);
 			}
@@ -989,11 +1019,16 @@ void generate_graph(char *gdeffn, char *rrddir, char *graphfn)
 		rrddbsize = 5;
 		rrddbs = (rrddb_t *) malloc((rrddbsize+1) * sizeof(rrddb_t));
 
+#ifdef PCRE2
 		ovector = pcre2_match_data_create(30, NULL);
+#endif
+
 		while ((d = readdir(dir)) != NULL) {
 			char *ext;
 			char param[PATH_MAX];
+#ifdef PCRE2
 			PCRE2_SIZE l = sizeof(param);
+#endif
 
 			/* Ignore dot-files and files with names shorter than ".rrd" */
 			if (*(d->d_name) == '.') continue;
@@ -1002,14 +1037,24 @@ void generate_graph(char *gdeffn, char *rrddir, char *graphfn)
 
 			/* First check the exclude pattern. */
 			if (expat) {
+#ifdef PCRE2
 				result = pcre2_match(expat, d->d_name, strlen(d->d_name), 0, 0,
 						     ovector, NULL);
+#else
+				result = pcre_exec(expat, NULL, d->d_name, strlen(d->d_name), 0, 0, 
+						   ovector, (sizeof(ovector)/sizeof(int)));
+#endif
 				if (result >= 0) continue;
 			}
 
 			/* Then see if the include pattern matches. */
+#ifdef PCRE2
 			result = pcre2_match(pat, d->d_name, strlen(d->d_name), 0, 0,
 					     ovector, NULL);
+#else
+			result = pcre_exec(pat, NULL, d->d_name, strlen(d->d_name), 0, 0, 
+					   ovector, (sizeof(ovector)/sizeof(int)));
+#endif
 			if (result < 0) continue;
 
 			if (wantsingle) {
@@ -1027,7 +1072,11 @@ void generate_graph(char *gdeffn, char *rrddir, char *graphfn)
 
 			/* We have a matching file! */
 			rrddbs[rrddbcount].rrdfn = strdup(d->d_name);
+#ifdef PCRE2
 			if (pcre2_substring_copy_bynumber(ovector, 1, param, &l) == 0) {
+#else
+			if (pcre_copy_substring(d->d_name, ovector, result, 1, param, sizeof(param)) > 0) {
+#endif
 				/*
 				 * This is ugly, but I cannot find a pretty way of un-mangling
 				 * the disk- and http-data that has been molested by the back-end.
@@ -1065,9 +1114,14 @@ void generate_graph(char *gdeffn, char *rrddir, char *graphfn)
 				rrddbs = (rrddb_t *)realloc(rrddbs, (rrddbsize+1) * sizeof(rrddb_t));
 			}
 		}
+#ifdef PCRE2
 		pcre2_code_free(pat);
 		if (expat) pcre2_code_free(expat);
 		pcre2_match_data_free(ovector);
+#else
+		pcre_free(pat);
+		if (expat) pcre_free(expat);
+#endif
 		closedir(dir);
 	}
 	rrddbs[rrddbcount].key = rrddbs[rrddbcount].rrdfn = rrddbs[rrddbcount].rrdparam = NULL;

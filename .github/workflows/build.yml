@@ -34,10 +34,17 @@ jobs:
             build-essential \
             libc-ares-dev \
             libldap-dev \
-            libpcre2-dev \
             librrd-dev \
             libssl-dev \
             libtirpc-dev
+          if apt-cache show libpcre2-dev 2>/dev/null | grep -q '^Version: '; then
+            sudo apt-get install -y --no-install-recommends \
+              libpcre2-dev \
+              pkgconf
+          else
+            sudo apt-get install -y --no-install-recommends \
+              libpcre3-dev
+          fi
 
       - name: Configure (${{ matrix.name }})
         env:

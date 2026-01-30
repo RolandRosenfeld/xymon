@@ -1,5 +1,7 @@
 TOOLS = merge-lines merge-sects setup-newfiles renamevars renametasks
 
+CFLAGS += $(PCREINCDIR) $(PCREDEF)
+
 all: $(TOOLS)
 
 merge-lines: merge-lines.c

@@ -25,8 +25,12 @@ static char rcsid[] = "$Id$";
 #include <limits.h>
 #include <errno.h>
 
+#ifdef PCRE2
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h>
+#else
+#include <pcre.h>
+#endif
 
 #include "libxymon.h"
 
@@ -165,29 +169,77 @@ static void free_criteria(criteria_t *crit)
 {
 	if (crit->cfline)        xfree(crit->cfline);
 	if (crit->pagespec)      xfree(crit->pagespec);
+#ifdef PCRE2
 	if (crit->pagespecre)    pcre2_code_free(crit->pagespecre);
+#else
+	if (crit->pagespecre)    pcre_free(crit->pagespecre);
+#endif
 	if (crit->expagespec)    xfree(crit->expagespec);
+#ifdef PCRE2
 	if (crit->expagespecre)  pcre2_code_free(crit->expagespecre);
+#else
+	if (crit->expagespecre)  pcre_free(crit->expagespecre);
+#endif
 	if (crit->dgspec)        xfree(crit->dgspec);
+#ifdef PCRE2
 	if (crit->dgspecre)      pcre2_code_free(crit->dgspecre);
+#else
+	if (crit->dgspecre)      pcre_free(crit->dgspecre);
+#endif
 	if (crit->exdgspec)      xfree(crit->exdgspec);
+#ifdef PCRE2
 	if (crit->exdgspecre)    pcre2_code_free(crit->exdgspecre);
+#else
+	if (crit->exdgspecre)    pcre_free(crit->exdgspecre);
+#endif
 	if (crit->hostspec)      xfree(crit->hostspec);
+#ifdef PCRE2
 	if (crit->hostspecre)    pcre2_code_free(crit->hostspecre);
+#else
+	if (crit->hostspecre)    pcre_free(crit->hostspecre);
+#endif
 	if (crit->exhostspec)    xfree(crit->exhostspec);
+#ifdef PCRE2
 	if (crit->exhostspecre)  pcre2_code_free(crit->exhostspecre);
+#else
+	if (crit->exhostspecre)  pcre_free(crit->exhostspecre);
+#endif
 	if (crit->svcspec)       xfree(crit->svcspec);
+#ifdef PCRE2
 	if (crit->svcspecre)     pcre2_code_free(crit->svcspecre);
+#else
+	if (crit->svcspecre)     pcre_free(crit->svcspecre);
+#endif
 	if (crit->exsvcspec)     xfree(crit->exsvcspec);
+#ifdef PCRE2
 	if (crit->exsvcspecre)   pcre2_code_free(crit->exsvcspecre);
+#else
+	if (crit->exsvcspecre)   pcre_free(crit->exsvcspecre);
+#endif
 	if (crit->classspec)     xfree(crit->classspec);
+#ifdef PCRE2
 	if (crit->classspecre)   pcre2_code_free(crit->classspecre);
+#else
+	if (crit->classspecre)   pcre_free(crit->classspecre);
+#endif
 	if (crit->exclassspec)   xfree(crit->exclassspec);
+#ifdef PCRE2
 	if (crit->exclassspecre) pcre2_code_free(crit->exclassspecre);
+#else
+	if (crit->exclassspecre) pcre_free(crit->exclassspecre);
+#endif
 	if (crit->groupspec)     xfree(crit->groupspec);
+#ifdef PCRE2
 	if (crit->groupspecre)   pcre2_code_free(crit->groupspecre);
+#else
+	if (crit->groupspecre)   pcre_free(crit->groupspecre);
+#endif
 	if (crit->exgroupspec)   xfree(crit->exgroupspec);
+#ifdef PCRE2
 	if (crit->exgroupspecre) pcre2_code_free(crit->exgroupspecre);
+#else
+	if (crit->exgroupspecre) pcre_free(crit->exgroupspecre);
+#endif
 	if (crit->timespec)      xfree(crit->timespec);
 	if (crit->extimespec)    xfree(crit->extimespec);
 }

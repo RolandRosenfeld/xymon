@@ -426,8 +426,13 @@ int main(int argc, char *argv[])
 	char *pidfile = NULL;
 	char *envarea = NULL;
 	int cnid = -1;
+#ifdef PCRE2
 	pcre2_code *msgfilter = NULL;
 	pcre2_code *stdfilter = NULL;
+#else
+	pcre *msgfilter = NULL;
+	pcre *stdfilter = NULL;
+#endif
 
 	int argi;
 	struct sigaction sa;

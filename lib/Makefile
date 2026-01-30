@@ -25,7 +25,7 @@ XYMONTIMELIB = libxymontime.a
 XYMONTIMELIBS = $(XYMONTIMELIB) $(LIBRTDEF)
 
 
-CFLAGS += -I../include 
+CFLAGS += -I../include $(PCREINCDIR) $(PCREDEF)
 
 all: test-endianness $(XYMONLIB) $(XYMONCOMMLIB) $(XYMONTIMELIB) $(XYMONCLIENTCOMMLIB) $(XYMONCLIENTLIB) loadhosts stackio availability md5 sha1 rmd160 locator tree
 
@@ -58,22 +58,22 @@ loadhosts.o: loadhosts.c loadhosts_file.c loadhosts_net.c
 	$(CC) $(CFLAGS) -c -o $@ loadhosts.c
 
 eventlog.o: eventlog.c
-	$(CC) $(CFLAGS) $(PCREINCDIR) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 notifylog.o: notifylog.c
-	$(CC) $(CFLAGS) $(PCREINCDIR) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 acknowledgementslog.o: acknowledgementslog.c
-	$(CC) $(CFLAGS) $(PCREINCDIR) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 headfoot.o: headfoot.c
-	$(CC) $(CFLAGS) $(PCREINCDIR) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 loadalerts.o: loadalerts.c
-	$(CC) $(CFLAGS) $(PCREINCDIR) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 matching.o: matching.c
-	$(CC) $(CFLAGS) $(PCREINCDIR) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 sha1.o: sha1.c
 	$(CC) $(CFLAGS) `./test-endianness` -c -o $@ $<
