@@ -1,10 +1,10 @@
 include Makefile.$(OS)
 
 test-compile:
-	@$(CC) $(CFLAGS) $(PCREINC) -o test-pcre.o -c test-pcre.c
+	@$(CC) $(CFLAGS) $(PCREINC) $(PCREDEF) -o test-pcre.o -c test-pcre.c
 
 test-link:
-	@$(CC) $(CFLAGS) $(PCRELIB) -o test-pcre test-pcre.o -lpcre2-8
+	@$(CC) $(CFLAGS) $(PCRELIB) -o test-pcre test-pcre.o -l$(PCRELIBNAME)
 
 clean:
 	@rm -f test-pcre.o test-pcre

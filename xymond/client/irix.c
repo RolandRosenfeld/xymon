@@ -16,7 +16,11 @@ void handle_irix_client(char *hostname, char *clienttype, enum ostype_t os,
 			void *hinfo, char *sender, time_t timestamp,
 			char *clientdata)
 {
+#ifdef PCRE2
 	static pcre2_code *memptn = NULL;
+#else
+	static pcre *memptn = NULL;
+#endif
 	char *timestr;
 	char *uptimestr;
 	char *clockstr;
@@ -69,9 +73,15 @@ void handle_irix_client(char *hostname, char *clienttype, enum ostype_t os,
 	if (topstr) {
 		char *memline, *eoln = NULL;
 		int res;
+#ifdef PCRE2
 		pcre2_match_data *ovector;
+#else
+		int ovector[20];
+#endif
 		char w[20];
+#ifdef PCRE2
 		PCRE2_SIZE l;
+#endif
 		long memphystotal = -1, memphysused = -1, memphysfree = 0,
 		     memacttotal = -1, memactused = -1, memactfree = -1,
 		     memswaptotal = -1, memswapused = -1, memswapfree = 0;
@@ -80,47 +90,75 @@ void handle_irix_client(char *hostname, char *clienttype, enum ostype_t os,
 			memptn = compileregex("^Memory: (\\d+)M max, (\\d+)M avail, (\\d+)M free, (\\d+)M swap, (\\d+)M free swap");
 		}
 
+#ifdef PCRE2
 		ovector = pcre2_match_data_create(20, NULL);
+#endif
 		memline = strstr(topstr, "\nMemory:");
 		if (memline) {
 			memline++;
 			eoln = strchr(memline, '\n'); if (eoln) *eoln = '\0';
 
+#ifdef PCRE2
 			res = pcre2_match(memptn, memline, strlen(memline), 0, 0, ovector, NULL);
+#else
+			res = pcre_exec(memptn, NULL, memline, strlen(memline), 0, 0, ovector, (sizeof(ovector)/sizeof(int)));
+#endif
 		}
 		else res = -1;
 
 		if (res > 1) {
+#ifdef PCRE2
 			l = sizeof(w);
 			pcre2_substring_copy_bynumber(ovector, 1, w, &l);
+#else
+			pcre_copy_substring(memline, ovector, res, 1, w, sizeof(w));
+#endif
 			memphystotal = atol(w);
 		}
 		if (res > 2) {
+#ifdef PCRE2
 			l = sizeof(w);
 			pcre2_substring_copy_bynumber(ovector, 2, w, &l);
+#else
+			pcre_copy_substring(memline, ovector, res, 2, w, sizeof(w));
+#endif
 			memactfree = atol(w);
 			memacttotal = memphystotal;
 			memactused = memphystotal - memactfree;
 		}
 		if (res > 3) {
+#ifdef PCRE2
 			l = sizeof(w);
 			pcre2_substring_copy_bynumber(ovector, 3, w, &l);
+#else
+			pcre_copy_substring(memline, ovector, res, 3, w, sizeof(w));
+#endif
 			memphysfree = atol(w);
 			memphysused = memphystotal - memphysfree;
 		}
 
 		if (res > 4) {
+#ifdef PCRE2
 			l = sizeof(w);
 			pcre2_substring_copy_bynumber(ovector, 4, w, &l);
+#else
+			pcre_copy_substring(memline, ovector, res, 4, w, sizeof(w));
+#endif
 			memswaptotal = atol(w);
 		}
 		if (res > 5) {
+#ifdef PCRE2
 			l = sizeof(w);
 			pcre2_substring_copy_bynumber(ovector, 5, w, &l);
+#else
+			pcre_copy_substring(memline, ovector, res, 5, w, sizeof(w));
+#endif
 			memswapfree = atol(w);
 		}
 		memswapused = memswaptotal - memswapfree;
+#ifdef PCRE2
 		pcre2_match_data_free(ovector);
+#endif
 
 		if (eoln) *eoln = '\n';
 

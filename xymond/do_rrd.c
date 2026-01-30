@@ -23,8 +23,12 @@ static char rcsid[] = "$Id$";
 #include <utime.h>
 
 #include <rrd.h>
+#ifdef PCRE2
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h>
+#else
+#include <pcre.h>
+#endif
 
 #include "libxymon.h"
 

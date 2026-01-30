@@ -17,8 +17,12 @@ static char rcsid[] = "$Id$";
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef PCRE2
 #define PCRE2_CODE_UNIT_WIDTH 8
 #include <pcre2.h>
+#else
+#include <pcre.h>
+#endif
 
 #include "libxymon.h"
 
@@ -32,12 +36,21 @@ int main(int argc, char *argv[])
 	char *firsttxtline = NULL;
 	int inheaders = 1;
 	char *p;
+#ifdef PCRE2
 	pcre2_code *subjexp;
 	int err, result;
 	PCRE2_SIZE errofs;
 	pcre2_match_data *ovector;
+#else
+	pcre *subjexp;
+	const char *errmsg;
+	int errofs, result;
+	int ovector[30];
+#endif
 	char cookie[10];
+#ifdef PCRE2
 	PCRE2_SIZE l = sizeof(cookie);
+#endif
 	int duration = 0;
 	int argi;
 	char *envarea = NULL;
@@ -98,58 +111,112 @@ int main(int argc, char *argv[])
 	}
 
 	/* Get the alert cookie */
+#ifdef PCRE2
 	subjexp = pcre2_compile(".*(Xymon|Hobbit|BB)[ -]* \\[*(-*[0-9]+)[\\]!]*", PCRE2_ZERO_TERMINATED, PCRE2_CASELESS, &err, &errofs, NULL);
+#else
+	subjexp = pcre_compile(".*(Xymon|Hobbit|BB)[ -]* \\[*(-*[0-9]+)[\\]!]*", PCRE_CASELESS, &errmsg, &errofs, NULL);
+#endif
 	if (subjexp == NULL) {
 		dbgprintf("pcre compile failed - 1\n");
 		return 2;
 	}
+#ifdef PCRE2
 	ovector = pcre2_match_data_create(30, NULL);
 	result = pcre2_match(subjexp, subjectline, strlen(subjectline), 0, 0, ovector, NULL);
+#else
+	result = pcre_exec(subjexp, NULL, subjectline, strlen(subjectline), 0, 0, ovector, (sizeof(ovector)/sizeof(int)));
+#endif
 	if (result < 0) {
+#ifdef PCRE2
 		pcre2_match_data_free(ovector);
+#endif
 		dbgprintf("Subject line did not match pattern\n");
 		return 3; /* Subject did not match what we expected */
 	}
+#ifdef PCRE2
 	if (pcre2_substring_copy_bynumber(ovector, 2, cookie, &l) <= 0) {
 		pcre2_match_data_free(ovector);
+#else
+	if (pcre_copy_substring(subjectline, ovector, result, 2, cookie, sizeof(cookie)) <= 0) {
+#endif
 		dbgprintf("Could not find cookie value\n");
 		return 4; /* No cookie */
 	}
+#ifdef PCRE2
 	pcre2_code_free(subjexp);
+#else
+	pcre_free(subjexp);
+#endif
 
 	/* See if there's a "DELAY=" delay-value also */
+#ifdef PCRE2
 	subjexp = pcre2_compile(".*DELAY[ =]+([0-9]+[mhdw]*)", PCRE2_ZERO_TERMINATED, PCRE2_CASELESS, &err, &errofs, NULL);
+#else
+	subjexp = pcre_compile(".*DELAY[ =]+([0-9]+[mhdw]*)", PCRE_CASELESS, &errmsg, &errofs, NULL);
+#endif
 	if (subjexp == NULL) {
+#ifdef PCRE2
 		pcre2_match_data_free(ovector);
+#endif
 		dbgprintf("pcre compile failed - 2\n");
 		return 2;
 	}
+#ifdef PCRE2
 	result = pcre2_match(subjexp, subjectline, strlen(subjectline), 0, 0, ovector, NULL);
+#else
+	result = pcre_exec(subjexp, NULL, subjectline, strlen(subjectline), 0, 0, ovector, (sizeof(ovector)/sizeof(int)));
+#endif
 	if (result >= 0) {
 		char delaytxt[4096];
+#ifdef PCRE2
 		l = sizeof(delaytxt);
 		if (pcre2_substring_copy_bynumber(ovector, 1, delaytxt, &l) == 0) {
+#else
+		if (pcre_copy_substring(subjectline, ovector, result, 1, delaytxt, sizeof(delaytxt)) > 0) {
+#endif
 			duration = durationvalue(delaytxt);
 		}
 	}
+#ifdef PCRE2
 	pcre2_code_free(subjexp);
+#else
+	pcre_free(subjexp);
+#endif
 
 	/* See if there's a "msg" text also */
+#ifdef PCRE2
 	subjexp = pcre2_compile(".*MSG[ =]+(.*)", PCRE2_ZERO_TERMINATED, PCRE2_CASELESS, &err, &errofs, NULL);
+#else
+	subjexp = pcre_compile(".*MSG[ =]+(.*)", PCRE_CASELESS, &errmsg, &errofs, NULL);
+#endif
 	if (subjexp == NULL) {
+#ifdef PCRE2
 		pcre2_match_data_free(ovector);
+#endif
 		dbgprintf("pcre compile failed - 3\n");
 		return 2;
 	}
+#ifdef PCRE2
 	result = pcre2_match(subjexp, subjectline, strlen(subjectline), 0, 0, ovector, NULL);
+#else
+	result = pcre_exec(subjexp, NULL, subjectline, strlen(subjectline), 0, 0, ovector, (sizeof(ovector)/sizeof(int)));
+#endif
 	if (result >= 0) {
 		char msgtxt[4096];
+#ifdef PCRE2
 		l = sizeof(msgtxt);
 		if (pcre2_substring_copy_bynumber(ovector, 1, msgtxt, &l) == 0) {
+#else
+		if (pcre_copy_substring(subjectline, ovector, result, 1, msgtxt, sizeof(msgtxt)) > 0) {
+#endif
 			firsttxtline = strdup(msgtxt);
 		}
 	}
+#ifdef PCRE2
 	pcre2_code_free(subjexp);
+#else
+	pcre_free(subjexp);
+#endif
 
 	/* Use the "return-path:" header if we didn't see a From: line */
 	if ((fromline == NULL) && returnpathline) fromline = returnpathline;

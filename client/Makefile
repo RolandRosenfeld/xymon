@@ -24,6 +24,8 @@ XYMONCLIENTCOMMLIBS = $(XYMONCLIENTCOMMLIB) $(SSLLIBS) $(ZLIBLIBS) $(NETLIBS) $(
 PROGRAMS=xymonlaunch logfetch clientupdate orcaxymon msgcache
 COMMONTOOLS=xymon xymoncmd xymongrep xymoncfg xymondigest
 
+CFLAGS += $(PCREINCDIR) $(PCREDEF)
+
 all: $(PROGRAMS) $(COMMONTOOLS) xymonclient.cfg clientlaunch.cfg $(EXTRATOOLS)
 
 xymonclient.cfg: xymonclient.cfg.DIST

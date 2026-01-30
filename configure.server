@@ -464,16 +464,17 @@ fi
 echo ""                                  >>Makefile
 
 echo "# PCRE settings"                   >>Makefile
+echo "PCREDEF = $PCREDEF"                >>Makefile
 if test "$PCREOK" = "YES"
 then
     if test "$PCREINC" != ""; then
 	echo "PCREINCDIR = -I$PCREINC"   >>Makefile
     fi
     if test "$PCRELIB" != ""; then
-	echo "PCRELIBS = -L$PCRELIB -lpcre2-8" >>Makefile
+	echo "PCRELIBS = -L$PCRELIB -l$PCRELIBNAME" >>Makefile
 	echo "RPATHVAL += ${PCRELIB}"       >>Makefile
     else
-	echo "PCRELIBS = -lpcre2-8"      >>Makefile
+	echo "PCRELIBS = -l$PCRELIBNAME"      >>Makefile
     fi
 fi
 echo ""                                  >>Makefile

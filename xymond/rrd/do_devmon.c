@@ -18,8 +18,13 @@ int do_devmon_rrd(char *hostname, char *testname, char *classname, char *pagepat
 
 	char *eoln, *curline;
 	static int ptnsetup = 0;
+#ifdef PCRE2
 	static pcre2_code *inclpattern = NULL;
 	static pcre2_code *exclpattern = NULL;
+#else
+	static pcre *inclpattern = NULL;
+	static pcre *exclpattern = NULL;
+#endif
 	int in_devmon = 1;
 	int numds = 0;
 	char *rrdbasename;

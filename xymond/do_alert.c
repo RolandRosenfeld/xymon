@@ -27,6 +27,10 @@ static char rcsid[] = "$Id$";
 #include <errno.h>
 #include <sys/wait.h>
 
+#ifndef PCRE2
+#include <pcre.h>
+
+#endif
 #include "libxymon.h"
 
 /*

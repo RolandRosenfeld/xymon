@@ -2,6 +2,8 @@
 
 	PCREINC=""
 	PCRELIB=""
+	PCREDEF=""
+	PCRELIBNAME="pcre"
 	for DIR in /opt/pcre* /usr/local/pcre* /usr/local /usr/pkg /opt/csw /opt/sfw
 	do
 		if test -f $DIR/include/pcre.h
@@ -43,8 +45,16 @@
 	cd build
 	if test "$PCREINC" != ""; then INCOPT="-I$PCREINC"; fi
 	if test "$PCRELIB" != ""; then LIBOPT="-L$PCRELIB"; fi
+
+	if pkg-config --exists libpcre2-8 > /dev/null 2>&1; then
+		PCREDEF="-DPCRE2"
+		INCOPT=$(pkg-config --cflags libpcre2-8)
+		LIBOPT=$(pkg-config --libs libpcre2-8)
+		PCRELIBNAME=pcre2-8
+	fi
+
 	OS=`uname -s | sed -e's@/@_@g'` $MAKE -f Makefile.test-pcre clean
-	OS=`uname -s | sed -e's@/@_@g'` PCREINC="$INCOPT" $MAKE -f Makefile.test-pcre test-compile
+	OS=`uname -s | sed -e's@/@_@g'` PCREINC="$INCOPT" PCREDEF="$PCREDEF" $MAKE -f Makefile.test-pcre test-compile
 	if test $? -eq 0; then
 		echo "Compiling with PCRE library works OK"
 	else
@@ -52,7 +62,7 @@
 		PCREOK="NO"
 	fi
 
-	OS=`uname -s | sed -e's@/@_@g'` PCRELIB="$LIBOPT" $MAKE -f Makefile.test-pcre test-link
+	OS=`uname -s | sed -e's@/@_@g'` PCRELIB="$LIBOPT" PCRELIBNAME="$PCRELIBNAME" $MAKE -f Makefile.test-pcre test-link
 	if test $? -eq 0; then
 		echo "Linking with PCRE library works OK"
 	else

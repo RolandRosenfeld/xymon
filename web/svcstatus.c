@@ -359,7 +359,11 @@ int do_request(void)
 
 		/* We need not check that hostname is valid, has already been done with loadhostdata() */
 		if (!complist) {
+#ifdef PCRE2
 			pcre2_code *dummy = NULL;
+#else
+			pcre *dummy = NULL;
+#endif
 
 			/* Check service as a pcre pattern. And no spaces in servicenames */
 			if (strchr(service, ' ') == NULL) dummy = compileregex(service);
@@ -373,7 +377,11 @@ int do_request(void)
 			snprintf(xymondreq, xymondreq_buflen, "xymondlog host=%s test=%s fields=hostname,testname,color,flags,lastchange,logtime,validtime,acktime,disabletime,sender,cookie,ackmsg,dismsg,client,acklist,XMH_IP,XMH_DISPLAYNAME,clntstamp,flapinfo,modifiers", hostname, service);
 		}
 		else {
+#ifdef PCRE2
 			pcre2_code *dummy = NULL;
+#else
+			pcre *dummy = NULL;
+#endif
 			SBUF_DEFINE(re);
 
 			SBUF_MALLOC(re, 5 + strlen(complist));

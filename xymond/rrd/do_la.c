@@ -17,8 +17,13 @@ int do_la_rrd(char *hostname, char *testname, char *classname, char *pagepaths, 
 	static char *clock_params[]       = { "DS:la:GAUGE:600:U:U", NULL }; /* "la" is a misnomer, but to stay compatiable with existing RRD files */
 	static void *clock_tpl            = NULL;
 
+#ifdef PCRE2
 	static pcre2_code *as400_exp = NULL;
 	static pcre2_code *zVM_exp = NULL;
+#else
+	static pcre *as400_exp = NULL;
+	static pcre *zVM_exp = NULL;
+#endif
 	static time_t starttime = 0;
 
 	char *p, *eoln = NULL;
@@ -66,28 +71,53 @@ int do_la_rrd(char *hostname, char *testname, char *classname, char *pagepaths, 
 		 * the operating system name is part of the message (as in the tests above).
 		 */
 
+#ifdef PCRE2
 		pcre2_match_data *ovector;
+#else
+		int ovector[30];
+#endif
 		char w[100];
+#ifdef PCRE2
 		PCRE2_SIZE l = sizeof(w);
+#endif
 		int res;
 
 		if (zVM_exp == NULL) {
+#ifdef PCRE2
 			int err;
 			PCRE2_SIZE errofs;
+#else
+			const char *errmsg = NULL;
+			int errofs = 0;
+#endif
 
+#ifdef PCRE2
 			zVM_exp = pcre2_compile(".* CPU Utilization *([0-9]+)%", PCRE2_ZERO_TERMINATED, PCRE2_CASELESS, &err, &errofs, NULL);
+#else
+			zVM_exp = pcre_compile(".* CPU Utilization *([0-9]+)%", PCRE_CASELESS, &errmsg, &errofs, NULL);
+#endif
 		}
 
+#ifdef PCRE2
 		ovector = pcre2_match_data_create(30, NULL);
 		res = pcre2_match(zVM_exp, msg, strlen(msg), 0, 0, ovector, NULL);
+#else
+		res = pcre_exec(zVM_exp, NULL, msg, strlen(msg), 0, 0, ovector, (sizeof(ovector)/sizeof(int)));
+#endif
 		if (res >= 0) {
 			/* We have a match - pick up the data. */
+#ifdef PCRE2
 			*w = '\0'; if (res > 0) pcre2_substring_copy_bynumber(ovector, 1, w, &l);
+#else
+			*w = '\0'; if (res > 0) pcre_copy_substring(msg, ovector, res, 1, w, sizeof(w));
+#endif
 			if (strlen(w)) {
 				load = atoi(w); gotload = 1;
 			}
 		}
+#ifdef PCRE2
 		pcre2_match_data_free(ovector);
+#endif
 
 		goto done_parsing;
 	}
@@ -142,34 +172,64 @@ int do_la_rrd(char *hostname, char *testname, char *classname, char *pagepaths, 
 		 * No "uptime" in message - could be from an AS/400. They look like this:
 		 * green March 21, 2005 12:33:24 PM EST deltacdc 108 users 45525 jobs(126 batch,0 waiting for message), load=26%
 		 */
+#ifdef PCRE2
 		pcre2_match_data *ovector;
+#else
+		int ovector[30];
+#endif
 		char w[100];
+#ifdef PCRE2
 		PCRE2_SIZE l = sizeof(w);
+#endif
 		int res;
 
 		if (as400_exp == NULL) {
+#ifdef PCRE2
 			int err;
 			PCRE2_SIZE errofs;
+#else
+			const char *errmsg = NULL;
+			int errofs = 0;
+#endif
 
+#ifdef PCRE2
 			as400_exp = pcre2_compile(".* ([0-9]+) users ([0-9]+) jobs.* load=([0-9]+)\\%",
 			                          PCRE2_ZERO_TERMINATED, PCRE2_CASELESS, &err, &errofs, NULL);
+#else
+			as400_exp = pcre_compile(".* ([0-9]+) users ([0-9]+) jobs.* load=([0-9]+)\\%", 
+						 PCRE_CASELESS, &errmsg, &errofs, NULL);
+#endif
 		}
 
+#ifdef PCRE2
 		ovector = pcre2_match_data_create(30, NULL);
 		res = pcre2_match(as400_exp, msg, strlen(msg), 0, 0, ovector, NULL);
+#else
+		res = pcre_exec(as400_exp, NULL, msg, strlen(msg), 0, 0, ovector, (sizeof(ovector)/sizeof(int)));
+#endif
 		if (res >= 0) {
 			/* We have a match - pick up the AS/400 data. */
+#ifdef PCRE2
 			*w = '\0'; if (res > 0) pcre2_substring_copy_bynumber(ovector, 1, w, &l);
+#else
+			*w = '\0'; if (res > 0) pcre_copy_substring(msg, ovector, res, 1, w, sizeof(w));
+#endif
 			if (strlen(w)) {
 				users = atoi(w); gotusers = 1;
 			}
 
+#ifdef PCRE2
 			*w = '\0'; l = sizeof(w); if (res > 0) pcre2_substring_copy_bynumber(ovector, 3, w, &l);
+#else
+			*w = '\0'; if (res > 0) pcre_copy_substring(msg, ovector, res, 3, w, sizeof(w));
+#endif
 			if (strlen(w)) {
 				load = atoi(w); gotload = 1;
 			}
 		}
+#ifdef PCRE2
 		pcre2_match_data_free(ovector);
+#endif
 	}
 
 done_parsing:

@@ -19,6 +19,7 @@ EXTENSIONS = xymonnet-again.sh
 SNMPPROGRAMS = xymon-snmpcollect
 DBGTOOLS = contest
 
+CFLAGS += $(PCREINCDIR) $(PCREDEF)
 
 ifeq ($(DOSNMP),yes)
 PROGRAMS += $(SNMPPROGRAMS)

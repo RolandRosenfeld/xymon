@@ -128,7 +128,11 @@ int main(int argc, char *argv[])
       		/* Setup the filter we use for the report */
 		cookie = get_cookie("pagepath");
 		if (cookie && *cookie) {
+#ifdef PCRE2
 			pcre2_code *dummy;
+#else
+			pcre *dummy;
+#endif
 			SBUF_DEFINE(re);
 
 			SBUF_MALLOC(re, 8 + 2*strlen(cookie));
