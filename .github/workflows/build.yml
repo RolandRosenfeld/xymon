@@ -6,6 +6,8 @@ on:
 
 jobs:
   build:
+    # TEMP: disabled while testing build-freebsd
+    if: ${{ false }}
     name: build (ubuntu-latest / ${{ matrix.name }})
     runs-on: ubuntu-latest
     strategy:
@@ -81,6 +83,8 @@ jobs:
           make -j1
 
   build-debian:
+    # TEMP: disabled while testing build-freebsd
+    if: ${{ false }}
     name: build (debian:${{ matrix.debian }} / ${{ matrix.name }})
     runs-on: ubuntu-latest
     container:
@@ -194,3 +198,108 @@ jobs:
           # FIXME: building in parallel causes issues
           # see https://github.com/xymon-monitoring/xymon/issues/3
           make -j1
+
+  build-freebsd:
+    name: build (freebsd:${{ matrix.freebsd }} / ${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - freebsd: "13.5"
+            name: server
+            variant: server
+          - freebsd: "13.5"
+            name: client, CT=client
+            variant: client
+            conftype: client
+          - freebsd: "13.5"
+            name: client, CT=server
+            variant: client
+            conftype: server
+
+          - freebsd: "14.3"
+            name: server
+            variant: server
+          - freebsd: "14.3"
+            name: client, CT=client
+            variant: client
+            conftype: client
+          - freebsd: "14.3"
+            name: client, CT=server
+            variant: client
+            conftype: server
+
+          - freebsd: "15.0"
+            name: server
+            variant: server
+            conftype: ""
+          - freebsd: "15.0"
+            name: client, CT=client
+            variant: client
+            conftype: client
+          - freebsd: "15.0"
+            name: client, CT=server
+            variant: client
+            conftype: server
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build in FreeBSD (${{ matrix.freebsd }} / ${{ matrix.name }})
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: ${{ matrix.freebsd }}
+          usesh: true
+          prepare: |
+            pkg update
+            pkg install -y \
+              ca_root_nss \
+              git \
+              gmake \
+              pkgconf \
+              c-ares \
+              openldap26-client \
+              rrdtool
+
+            if [ "${{ matrix.variant }}" = "client" ] && [ "${{ matrix.conftype }}" = "server" ]; then
+              echo "Skipping PCRE dependencies for client CT=server"
+            else
+              pkg install -y pcre2
+            fi
+
+            pw useradd -n xymon -d /nonexistent -s /usr/sbin/nologin || true
+
+          run: |
+            export CONFTYPE="${{ matrix.conftype }}"
+
+            USEXYMONPING=y \
+            ENABLESSL=y \
+            ENABLELDAP=y \
+            ENABLELDAPSSL=y \
+            XYMONUSER=xymon \
+            XYMONTOPDIR=/usr/lib/xymon \
+            XYMONVAR=/var/lib/xymon \
+            XYMONHOSTURL=/xymon \
+            CGIDIR=/usr/lib/xymon/cgi-bin \
+            XYMONCGIURL=/xymon-cgi \
+            SECURECGIDIR=/usr/lib/xymon/cgi-secure \
+            SECUREXYMONCGIURL=/xymon-seccgi \
+            HTTPDGID=www \
+            XYMONLOGDIR=/var/log/xymon \
+            XYMONHOSTNAME=localhost \
+            XYMONHOSTIP=127.0.0.1 \
+            MANROOT=/usr/share/man \
+            INSTALLBINDIR=/usr/lib/xymon/server/bin \
+            INSTALLETCDIR=/etc/xymon \
+            INSTALLWEBDIR=/etc/xymon/web \
+            INSTALLEXTDIR=/usr/lib/xymon/server/ext \
+            INSTALLTMPDIR=/var/lib/xymon/tmp \
+            INSTALLWWWDIR=/var/lib/xymon/www \
+            MAKE=gmake \
+            ./configure --${{ matrix.variant }}
+
+            # FIXME: building in parallel causes issues
+            # see https://github.com/xymon-monitoring/xymon/issues/3
+            gmake -j1
