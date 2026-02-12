@@ -200,6 +200,8 @@ jobs:
           make -j1
 
   build-freebsd:
+    # TEMP: disabled while testing build-netbsd
+    if: ${{ false }}
     name: build (freebsd:${{ matrix.freebsd }} / ${{ matrix.name }})
     runs-on: ubuntu-latest
     strategy:
@@ -270,6 +272,100 @@ jobs:
             fi
 
             pw useradd -n xymon -d /nonexistent -s /usr/sbin/nologin || true
+
+          run: |
+            export CONFTYPE="${{ matrix.conftype }}"
+
+            USEXYMONPING=y \
+            ENABLESSL=y \
+            ENABLELDAP=y \
+            ENABLELDAPSSL=y \
+            XYMONUSER=xymon \
+            XYMONTOPDIR=/usr/lib/xymon \
+            XYMONVAR=/var/lib/xymon \
+            XYMONHOSTURL=/xymon \
+            CGIDIR=/usr/lib/xymon/cgi-bin \
+            XYMONCGIURL=/xymon-cgi \
+            SECURECGIDIR=/usr/lib/xymon/cgi-secure \
+            SECUREXYMONCGIURL=/xymon-seccgi \
+            HTTPDGID=www \
+            XYMONLOGDIR=/var/log/xymon \
+            XYMONHOSTNAME=localhost \
+            XYMONHOSTIP=127.0.0.1 \
+            MANROOT=/usr/share/man \
+            INSTALLBINDIR=/usr/lib/xymon/server/bin \
+            INSTALLETCDIR=/etc/xymon \
+            INSTALLWEBDIR=/etc/xymon/web \
+            INSTALLEXTDIR=/usr/lib/xymon/server/ext \
+            INSTALLTMPDIR=/var/lib/xymon/tmp \
+            INSTALLWWWDIR=/var/lib/xymon/www \
+            MAKE=gmake \
+            ./configure --${{ matrix.variant }}
+
+            # FIXME: building in parallel causes issues
+            # see https://github.com/xymon-monitoring/xymon/issues/3
+            gmake -j1
+
+
+  build-netbsd:
+    # if: ${{ false }}
+    name: build (netbsd:${{ matrix.netbsd }} / ${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - netbsd: "9.4"
+            name: server
+            variant: server
+          - netbsd: "9.4"
+            name: client, CT=client
+            variant: client
+            conftype: client
+          - netbsd: "9.4"
+            name: client, CT=server
+            variant: client
+            conftype: server
+
+          - netbsd: "10.1"
+            name: server
+            variant: server
+            conftype: ""
+          - netbsd: "10.1"
+            name: client, CT=client
+            variant: client
+            conftype: client
+          - netbsd: "10.1"
+            name: client, CT=server
+            variant: client
+            conftype: server
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build in NetBSD (${{ matrix.netbsd }} / ${{ matrix.name }})
+        uses: vmactions/netbsd-vm@v1
+        with:
+          release: ${{ matrix.netbsd }}
+          usesh: true
+          prepare: |
+            pkg_add -U \
+              mozilla-rootcerts \
+              git-base \
+              gmake \
+              pkgconf \
+              libcares \
+              openldap-client \
+              rrdtool
+
+            if [ "${{ matrix.variant }}" = "client" ] && [ "${{ matrix.conftype }}" = "server" ]; then
+              echo "Skipping PCRE dependencies for client CT=server"
+            else
+              pkg_add -U pcre2
+            fi
+
+            /usr/sbin/useradd -d /nonexistent -s /sbin/nologin xymon || true
 
           run: |
             export CONFTYPE="${{ matrix.conftype }}"
