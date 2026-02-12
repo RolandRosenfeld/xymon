@@ -6,13 +6,13 @@ OSDEF = -DBSD
 NETLIBS =
 
 # Compile flags for normal build
-CC = gcc
-GCCVER := $(shell gcc -dumpversion|cut -d. -f1)
-ifeq ($(GCCVER),4)
-	CFLAGS = -g -O2 -Wall -Wno-unused -Wno-pointer-sign -D_REENTRANT -I/usr/local/include -L/usr/local/lib $(LFSDEF) $(OSDEF)
-else
+CC = cc
+#GCCVER := $(shell gcc -dumpversion|cut -d. -f1)
+#ifeq ($(GCCVER),4)
+#	CFLAGS = -g -O2 -Wall -Wno-unused -Wno-pointer-sign -D_REENTRANT -I/usr/local/include -L/usr/local/lib $(LFSDEF) $(OSDEF)
+#else
 	CFLAGS = -g -O2 -Wall -Wno-unused -D_REENTRANT -I/usr/local/include -L/usr/local/lib $(LFSDEF) $(OSDEF)
-endif
+#endif
 #
 # According to reports, this does not work on OpenBSD
 # RPATH = "-Wl,--rpath,"
