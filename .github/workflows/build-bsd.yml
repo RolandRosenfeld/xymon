@@ -1,0 +1,262 @@
+name: build-bsd
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-bsd:
+    name: build (${{ matrix.os }}:${{ matrix.version }} / ${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: freebsd
+            version: "13.5"
+            name: server
+            variant: server
+            conftype: ""
+            enabled: false
+          - os: freebsd
+            version: "13.5"
+            name: client/CT=client
+            variant: client
+            conftype: client
+            enabled: false
+          - os: freebsd
+            version: "13.5"
+            name: client/CT=server
+            variant: client
+            conftype: server
+            enabled: false
+
+          - os: freebsd
+            version: "14.3"
+            name: server
+            variant: server
+            conftype: ""
+            enabled: false
+          - os: freebsd
+            version: "14.3"
+            name: client/CT=client
+            variant: client
+            conftype: client
+            enabled: false
+          - os: freebsd
+            version: "14.3"
+            name: client/CT=server
+            variant: client
+            conftype: server
+            enabled: false
+
+          - os: freebsd
+            version: "15.0"
+            name: server
+            variant: server
+            conftype: ""
+            enabled: true
+          - os: freebsd
+            version: "15.0"
+            name: client/CT=client
+            variant: client
+            conftype: client
+            enabled: true
+          - os: freebsd
+            version: "15.0"
+            name: client/CT=server
+            variant: client
+            conftype: server
+            enabled: true
+
+          - os: netbsd
+            version: "9.4"
+            name: server
+            variant: server
+            conftype: ""
+            enabled: false
+          - os: netbsd
+            version: "9.4"
+            name: client/CT=client
+            variant: client
+            conftype: client
+            enabled: false
+          - os: netbsd
+            version: "9.4"
+            name: client/CT=server
+            variant: client
+            conftype: server
+            enabled: false
+
+          - os: netbsd
+            version: "10.1"
+            name: server
+            variant: server
+            conftype: ""
+            enabled: true
+          - os: netbsd
+            version: "10.1"
+            name: client/CT=client
+            variant: client
+            conftype: client
+            enabled: true
+          - os: netbsd
+            version: "10.1"
+            name: client/CT=server
+            variant: client
+            conftype: server
+            enabled: true
+
+          - os: openbsd
+            version: "7.8"
+            name: server
+            variant: server
+            conftype: ""
+            enabled: true
+          - os: openbsd
+            version: "7.8"
+            name: client/CT=client
+            variant: client
+            conftype: client
+            enabled: true
+          - os: openbsd
+            version: "7.8"
+            name: client/CT=server
+            variant: client
+            conftype: server
+            enabled: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build in freebsd (${{ matrix.version }} / ${{ matrix.name }})
+        if: matrix.os == 'freebsd'
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: ${{ matrix.version }}
+          usesh: true
+          prepare: |
+            pkg update
+
+            # All variants:
+            pkg install -y \
+              gmake
+
+            # Only for server:
+            if [ "${{ matrix.variant }}" = "server" ]; then
+              pkg install -y \
+                c-ares \
+                openldap26-client \
+                rrdtool
+            fi
+
+            # For server and client/CT=server:
+            if [ "${{ matrix.variant }}" = "server" ] || \
+             { [ "${{ matrix.variant }}" = "client" ] && \
+               [ "${{ matrix.conftype }}" = "client" ] ; }; then
+               pkg install -y \
+                 pkgconf \
+                 pcre2
+            fi
+
+            pw useradd -n xymon -d /nonexistent -s /usr/sbin/nologin || true
+
+          run: &bsd_run |
+            echo "::group::configure"
+            USEXYMONPING=y \
+            ENABLESSL=y \
+            ENABLELDAP=y \
+            ENABLELDAPSSL=y \
+            XYMONUSER=xymon \
+            XYMONTOPDIR=/usr/lib/xymon \
+            XYMONVAR=/var/lib/xymon \
+            XYMONHOSTURL=/xymon \
+            CGIDIR=/usr/lib/xymon/cgi-bin \
+            XYMONCGIURL=/xymon-cgi \
+            SECURECGIDIR=/usr/lib/xymon/cgi-secure \
+            SECUREXYMONCGIURL=/xymon-seccgi \
+            HTTPDGID=www \
+            XYMONLOGDIR=/var/log/xymon \
+            XYMONHOSTNAME=localhost \
+            XYMONHOSTIP=127.0.0.1 \
+            MANROOT=/usr/share/man \
+            INSTALLBINDIR=/usr/lib/xymon/server/bin \
+            INSTALLETCDIR=/etc/xymon \
+            INSTALLWEBDIR=/etc/xymon/web \
+            INSTALLEXTDIR=/usr/lib/xymon/server/ext \
+            INSTALLTMPDIR=/var/lib/xymon/tmp \
+            INSTALLWWWDIR=/var/lib/xymon/www \
+            CONFTYPE="${{ matrix.conftype }}" \
+            MAKE=gmake \
+            ./configure --${{ matrix.variant }}
+            echo "::endgroup::"
+
+            echo "::group::make"
+            # FIXME: building in parallel causes issues
+            # see https://github.com/xymon-monitoring/xymon/issues/3
+            gmake -j1
+            echo "::endgroup::"
+
+      - name: Build in netbsd (${{ matrix.version }} / ${{ matrix.name }})
+        if: matrix.os == 'netbsd'
+        uses: vmactions/netbsd-vm@v1
+        with:
+          release: ${{ matrix.version }}
+          usesh: true
+          prepare: |
+            # All variants:
+            pkg_add -U \
+              gmake
+
+            # Only for server:
+            if [ "${{ matrix.variant }}" = "server" ]; then
+              pkg_add -U \
+                libcares \
+                openldap-client \
+                rrdtool
+            fi
+
+            # For server and client/CT=server:
+            if [ "${{ matrix.variant }}" = "server" ] || \
+             { [ "${{ matrix.variant }}" = "client" ] && \
+               [ "${{ matrix.conftype }}" = "client" ] ; }; then
+               pkg_add -U \
+                 pkgconf \
+                 pcre2
+            fi
+
+            useradd -d /nonexistent -s /usr/sbin/nologin xymon || true
+          run: *bsd_run
+
+      - name: Build in openbsd (${{ matrix.version }} / ${{ matrix.name }})
+        if: matrix.os == 'openbsd'
+        uses: vmactions/openbsd-vm@v1
+        with:
+          release: ${{ matrix.version }}
+          usesh: true
+          prepare: |
+            # All variants:
+            pkg_add -U \
+              gmake
+
+            # Only for server:
+            if [ "${{ matrix.variant }}" = "server" ]; then
+              ldap_pkg="$(pkg_info -Q openldap-client | grep -v -- '-gssapi' | head -n 1)"
+              pkg_add -U \
+                libcares \
+                $ldap_pkg \
+                rrdtool
+            fi
+
+            # For server and client/CT=server:
+            if [ "${{ matrix.variant }}" = "server" ] || \
+             { [ "${{ matrix.variant }}" = "client" ] && \
+               [ "${{ matrix.conftype }}" = "client" ] ; }; then
+               pkg_add -U \
+                 py3-pkgconfig \
+                 pcre2
+            fi
+
+            useradd -d /nonexistent -s /sbin/nologin xymon || true
+          run: *bsd_run
