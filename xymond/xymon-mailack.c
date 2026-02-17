@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
 		dbgprintf("Subject line did not match pattern\n");
 		return 3; /* Subject did not match what we expected */
 	}
-	if (pcre2_substring_copy_bynumber(ovector, 2, cookie, &l) <= 0) {
+	if (pcre2_substring_copy_bynumber(ovector, 2, cookie, &l) < 0) {
 		pcre2_match_data_free(ovector);
 		dbgprintf("Could not find cookie value\n");
 		return 4; /* No cookie */
@@ -177,4 +177,3 @@ int main(int argc, char *argv[])
 	sendmessage(ackbuf, NULL, XYMON_TIMEOUT, NULL);
 	return 0;
 }
-
