@@ -19,12 +19,12 @@
 
 extern pcre2_code *compileregex(const char *pattern);
 extern pcre2_code *compileregex_opts(const char *pattern, uint32_t flags);
-#ifdef PCRE_FIRSTLINE
-#define firstlineregex(P) compileregex_opts(P, PCRE_FIRSTLINE);
-#define firstlineregexnocase(P) compileregex_opts(P, PCRE_CASELESS|PCRE_FIRSTLINE);
+#ifdef PCRE2_FIRSTLINE
+#define firstlineregex(P) compileregex_opts(P, PCRE2_FIRSTLINE);
+#define firstlineregexnocase(P) compileregex_opts(P, PCRE2_CASELESS|PCRE2_FIRSTLINE);
 #else
 #define firstlineregex(P) compileregex_opts(P, 0);
-#define firstlineregexnocase(P) compileregex_opts(P, PCRE_CASELESS);
+#define firstlineregexnocase(P) compileregex_opts(P, PCRE2_CASELESS);
 #endif
 extern pcre2_code *multilineregex(const char *pattern);
 extern int matchregex(const char *needle, pcre2_code *pcrecode);
