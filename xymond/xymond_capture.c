@@ -40,6 +40,7 @@ int main(int argc, char *argv[])
 	pcre2_code *extestexp = NULL;
 	pcre2_code *colorexp = NULL;
 	pcre2_match_data *ovector;
+	pcre2_code *match_re = NULL;
 	int err;
 	PCRE2_SIZE errofs;
 	FILE *logfd = stdout;
@@ -128,7 +129,16 @@ int main(int argc, char *argv[])
 
 	signal(SIGCHLD, SIG_IGN);
 
-	ovector = pcre2_match_data_create(30, NULL);
+	match_re = (hostexp ? hostexp :
+		    exhostexp ? exhostexp :
+		    testexp ? testexp :
+		    extestexp ? extestexp :
+		    colorexp);
+	ovector = (match_re ? pcre2_match_data_create_from_pattern(match_re, NULL) : NULL);
+	if (match_re && !ovector) {
+		errprintf("Cannot allocate PCRE match data for capture filtering\n");
+		return 1;
+	}
 	running = 1;
 	while (running) {
 		char *eoln, *restofmsg, *p;
@@ -339,8 +349,7 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
-	pcre2_match_data_free(ovector);
+	if (ovector) pcre2_match_data_free(ovector);
 
 	return 0;
 }
-
