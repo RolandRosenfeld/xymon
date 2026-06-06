@@ -1,5 +1,5 @@
 #! /bin/sh
-# postinst script for xymon
+# postinst script for xymon-client
 #
 # see: dh_installdeb(1)
 
@@ -21,19 +21,6 @@ set -e
 
 case "$1" in
     configure)
-	getent group xymon > /dev/null || addgroup --system xymon
-	getent passwd xymon > /dev/null || adduser --system \
-		--home /var/run/xymon --no-create-home \
-		--ingroup xymon --disabled-password --disabled-login \
-		--gecos "Xymon System Monitor" xymon
-
-	test -d /var/run/xymon || mkdir /var/run/xymon
-	chown xymon:xymon /var/run/xymon
-	test -d /var/lib/xymon/tmp || mkdir /var/lib/xymon/tmp
-	chown xymon:xymon /var/lib/xymon/tmp
-	test -d /var/log/xymon || mkdir /var/log/xymon
-	chown xymon:adm /var/log/xymon ; chmod 2755 /var/log/xymon
-
 	# Do the debconf stuff
 	db_get xymon-client/XYMONSERVERS
 	XYMONSERVERS="$RET"
@@ -41,9 +28,27 @@ case "$1" in
 	CLIENTHOSTNAME="$RET"
 	db_stop
 
+	# Create new group
+	getent group xymon > /dev/null || addgroup --system xymon
+
+	# Create or migrate user
+	getent passwd xymon > /dev/null || adduser --system \
+		--home /var/lib/xymon --no-create-home \
+		--ingroup xymon --disabled-password --disabled-login \
+		--gecos "Xymon System Monitor" xymon
+
+	test -d /var/run/xymon || mkdir /var/run/xymon
+	chown xymon:xymon /var/run/xymon
+
+	test -d /var/lib/xymon/tmp || mkdir -pv /var/lib/xymon/tmp
+	chown xymon:xymon -c /var/lib/xymon /var/lib/xymon/tmp
+
+	test -d /var/log/xymon || mkdir /var/log/xymon
+	chown xymon:adm /var/log/xymon ; chmod 2755 /var/log/xymon
+
 	# Update configuration file
 	CONFIGFILE=/etc/default/xymon-client
-	test -e $CONFIGFILE || cp /usr/share/xymon/xymon-client.default $CONFIGFILE
+	test -e $CONFIGFILE || cp /usr/share/xymon/xymon-client.default.template $CONFIGFILE
 	if grep -q "^XYMONSERVERS=" $CONFIGFILE ; then
 		sed -i -e "s/^XYMONSERVERS=.*/XYMONSERVERS=\"$XYMONSERVERS\"/" \
 			$CONFIGFILE
